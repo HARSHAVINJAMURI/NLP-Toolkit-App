@@ -15,8 +15,7 @@ from wordcloud import WordCloud
 # =========================
 nltk_data_dir = "/tmp/nltk_data"
 os.makedirs(nltk_data_dir, exist_ok=True)
-if nltk_data_dir not in nltk.data.path:
-    nltk.data.path.append(nltk_data_dir)
+os.environ["NLTK_DATA"] = nltk_data_dir
 
 nltk_resources = [
     "punkt",
