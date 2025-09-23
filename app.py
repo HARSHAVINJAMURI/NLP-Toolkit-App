@@ -15,9 +15,23 @@ from textblob import TextBlob
 # ------------------------------
 # Download NLTK resources at runtime
 # ------------------------------
-nltk_data = ["punkt","averaged_perceptron_tagger","wordnet","omw-1.4","stopwords"]
-for d in nltk_data:
-    nltk.download(d)
+import nltk
+
+# List of required NLTK datasets
+nltk_data_packages = [
+    "punkt",                     # Sentence & word tokenizer
+    "stopwords",                  # Stopwords
+    "averaged_perceptron_tagger",# POS tagging
+    "wordnet",                    # Lemmatizer
+    "omw-1.4"                     # WordNet multilingual
+]
+
+# Download each resource
+for package in nltk_data_packages:
+    try:
+        nltk.data.find(f"corpora/{package}")  # Check if already downloaded
+    except LookupError:
+        nltk.download(package)
 
 # ------------------------------
 # Streamlit page layout
@@ -231,3 +245,4 @@ if run:
         tok_buf_orig = "\n".join(tokens_original)
         st.download_button("Download original tokens (.txt)", data=tok_buf_orig,
                            file_name="tokens_original.txt", mime="text/plain")
+
