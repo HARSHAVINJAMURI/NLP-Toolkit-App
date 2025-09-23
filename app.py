@@ -12,12 +12,16 @@ from wordcloud import WordCloud
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from textblob import TextBlob
 
-# ----------------------------
-# Use local bundled NLTK data
-# ----------------------------
-nltk.data.path.append("./nltk_data")
+# ------------------------------
+# Download NLTK resources at runtime
+# ------------------------------
+nltk_data = ["punkt","averaged_perceptron_tagger","wordnet","omw-1.4","stopwords"]
+for d in nltk_data:
+    nltk.download(d)
 
-# Page layout
+# ------------------------------
+# Streamlit page layout
+# ------------------------------
 st.set_page_config(page_title="NLP Toolkit", layout="wide")
 col1, col2 = st.columns([1, 2])
 with col1:
@@ -31,7 +35,9 @@ with col2:
         "• Bag-of-Words\n• TF-IDF\n• Sentiment Analysis"
     )
 
+# ------------------------------
 # Sidebar input
+# ------------------------------
 with st.sidebar:
     st.header("Input")
     src = st.radio("Source", ["Paste text", "Upload file"], index=0)
@@ -52,6 +58,7 @@ with st.sidebar:
     st.header("Options")
     show_sentences = st.checkbox("Show sentences", value=True)
     show_paragraphs = st.checkbox("Show paragraphs", value=False)
+    do_tokenize = st.checkbox("Tokenize (words)", value=True)
     lower = st.checkbox("Lowercase / Normalize", value=True)
     rm_stop = st.checkbox("Remove stopwords", value=False)
     stop_lang = st.selectbox("Stopwords language", ["english","none"], index=0)
@@ -67,22 +74,19 @@ with st.sidebar:
     gen_wc = st.checkbox("Show wordcloud", value=True)
     run = st.button("Run NLP")
 
-# ----------------------------
+# ------------------------------
 # Helper functions
-# ----------------------------
+# ------------------------------
 def split_paragraphs(s): return [p.strip() for p in s.split("\n\n") if p.strip()]
-
 def remove_stopwords(tokens, lang):
     if lang=="none": return tokens
     sw = set(stopwords.words(lang))
     return [t for t in tokens if t.lower() not in sw]
-
 def apply_stem(tokens, choice):
     if choice=="Porter": return [PorterStemmer().stem(t) for t in tokens]
     if choice=="Lancaster": return [LancasterStemmer().stem(t) for t in tokens]
     if choice=="Snowball": return [SnowballStemmer("english").stem(t) for t in tokens]
     return tokens
-
 lemmatizer = WordNetLemmatizer()
 def nltk_lemmatize(tokens):
     out=[]
@@ -94,11 +98,9 @@ def nltk_lemmatize(tokens):
         elif pos=="r": wn_tag=wordnet.ADV
         out.append(lemmatizer.lemmatize(token, wn_tag))
     return out
-
 def freq_table(tokens, k=20):
     c = Counter(tokens)
     return pd.DataFrame(c.most_common(k), columns=["token","freq"])
-
 def make_ngrams(tokens, n): return [" ".join(gram) for gram in ngrams(tokens, n)]
 
 def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
@@ -114,9 +116,9 @@ def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
         proc_tokens = nltk_lemmatize(proc_tokens)
     return proc_tokens
 
-# ----------------------------
+# ------------------------------
 # Run NLP
-# ----------------------------
+# ------------------------------
 if run:
     if not txt.strip():
         st.warning("Please provide some text.")
@@ -142,7 +144,9 @@ if run:
                 for i,s in enumerate(sents[:50],1):
                     st.write(f"{i}. {s}")
 
-        # Tokens processing
+        # ------------------------------
+        # Tokens
+        # ------------------------------
         tokens_original = words_raw.copy()
         tokens_processed = process_tokens(tokens_original, lower, rm_stop, stop_lang, stem_choice, do_lemm)
 
@@ -224,7 +228,6 @@ if run:
         tok_buf_proc = "\n".join(tokens_processed)
         st.download_button("Download processed tokens (.txt)", data=tok_buf_proc,
                            file_name="tokens_processed.txt", mime="text/plain")
-
         tok_buf_orig = "\n".join(tokens_original)
         st.download_button("Download original tokens (.txt)", data=tok_buf_orig,
                            file_name="tokens_original.txt", mime="text/plain")
