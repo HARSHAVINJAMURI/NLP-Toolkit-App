@@ -10,7 +10,6 @@ from nltk.stem import PorterStemmer, LancasterStemmer, SnowballStemmer, WordNetL
 from nltk import pos_tag
 from wordcloud import WordCloud
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-import spacy
 from textblob import TextBlob
 
 # Ensure required NLTK data
@@ -20,12 +19,6 @@ for d in nltk_data:
         nltk.data.find(d if "/" in d else f"tokenizers/{d}" if d=="punkt" else f"corpora/{d}")
     except Exception:
         nltk.download(d)
-
-# Load SpaCy model
-@st.cache_resource
-def load_spacy_model():
-    return spacy.load("en_core_web_sm")
-nlp = load_spacy_model()
 
 # Page layout
 st.set_page_config(page_title="NLP Toolkit", layout="wide")
@@ -38,7 +31,7 @@ with col2:
     st.markdown(
         "• Tokens\n• N-grams\n• Stemming\n• Lemmatization\n• POS tagging\n"
         "• Stopwords removal\n• WordCloud\n• Frequency analysis\n"
-        "• Bag-of-Words\n• TF-IDF\n• Parsing\n• NER\n• Sentiment Analysis"
+        "• Bag-of-Words\n• TF-IDF\n• Sentiment Analysis"
     )
 
 # Sidebar input
@@ -62,7 +55,6 @@ with st.sidebar:
     st.header("Options")
     show_sentences = st.checkbox("Show sentences", value=True)
     show_paragraphs = st.checkbox("Show paragraphs", value=False)
-    do_tokenize = st.checkbox("Tokenize (words)", value=True)
     lower = st.checkbox("Lowercase / Normalize", value=True)
     rm_stop = st.checkbox("Remove stopwords", value=False)
     stop_lang = st.selectbox("Stopwords language", ["english","none"], index=0)
@@ -73,8 +65,6 @@ with st.sidebar:
     n_val = st.number_input("n (for n-grams)", min_value=2, max_value=6, value=2)
     do_bow = st.checkbox("Bag-of-Words (BOW)", value=False)
     do_tfidf = st.checkbox("TF-IDF", value=False)
-    do_parsing = st.checkbox("Parsing (dependency)", value=False)
-    do_ner = st.checkbox("Named Entity Recognition (NER)", value=False)
     do_sentiment = st.checkbox("Sentiment Analysis", value=False)
     top_k = st.number_input("Top K frequencies", min_value=5, max_value=200, value=20)
     gen_wc = st.checkbox("Show wordcloud", value=True)
@@ -106,7 +96,6 @@ def freq_table(tokens, k=20):
     c = Counter(tokens)
     return pd.DataFrame(c.most_common(k), columns=["token","freq"])
 def make_ngrams(tokens, n): return [" ".join(gram) for gram in ngrams(tokens, n)]
-
 def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
                    stem_choice="None", do_lemm=False):
     proc_tokens = tokens.copy()
@@ -200,18 +189,6 @@ if run:
             tfidf_df = pd.DataFrame(X_tfidf.toarray(), columns=tfidf_vect.get_feature_names_out())
             st.subheader("TF-IDF (Processed)")
             st.dataframe(tfidf_df.T, use_container_width=True)
-
-        # Parsing & NER
-        if do_parsing or do_ner:
-            doc = nlp(" ".join(tokens_processed))
-            if do_parsing:
-                dep_data = [(token.text, token.dep_, token.head.text) for token in doc[:50]]
-                st.subheader("Dependency Parsing (first 50 tokens, Processed)")
-                st.dataframe(pd.DataFrame(dep_data, columns=["Token","Dependency","Head"]))
-            if do_ner:
-                ents = [(ent.text, ent.label_) for ent in doc.ents]
-                st.subheader("Named Entities (Processed)")
-                st.dataframe(pd.DataFrame(ents, columns=["Entity","Label"]))
 
         # Sentiment Analysis
         if do_sentiment:
