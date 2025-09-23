@@ -30,6 +30,8 @@ nltk_resources = [
     "punkt",
     "punkt_tab",  # fix for deployment
     "averaged_perceptron_tagger",
+    "wordnet",                      # Lemmatization
+    "omw-1.4",                      # Lemmatization (multi-lingual)
     "wordnet",
     "omw-1.4",
     "stopwords"
@@ -240,4 +242,5 @@ if run:
         # also allow download of tokens as text
         tok_buf = "\n".join(tokens)
         st.download_button("Download tokens (.txt)", data=tok_buf, file_name="tokens.txt", mime="text/plain")
+
 
