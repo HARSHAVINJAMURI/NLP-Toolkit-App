@@ -107,9 +107,6 @@ def freq_table(tokens, k=20):
     return pd.DataFrame(c.most_common(k), columns=["token","freq"])
 def make_ngrams(tokens, n): return [" ".join(gram) for gram in ngrams(tokens, n)]
 
-# ------------------------------
-# Helper for processed tokens
-# ------------------------------
 def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
                    stem_choice="None", do_lemm=False):
     proc_tokens = tokens.copy()
@@ -151,9 +148,7 @@ if run:
                 for i,s in enumerate(sents[:50],1):
                     st.write(f"{i}. {s}")
 
-        # ------------------------------
-        # Original vs Processed tokens
-        # ------------------------------
+        # Tokens processing
         tokens_original = words_raw.copy()
         tokens_processed = process_tokens(tokens_original, lower, rm_stop, stop_lang, stem_choice, do_lemm)
 
@@ -166,7 +161,7 @@ if run:
             st.markdown("**Processed / With changes applied**")
             st.write(tokens_processed[:200])
 
-        # Frequencies comparison
+        # Frequencies
         tf_original = freq_table(tokens_original, k=top_k)
         tf_processed = freq_table(tokens_processed, k=top_k)
         col1, col2 = st.columns(2)
@@ -177,14 +172,14 @@ if run:
             st.subheader("Top tokens (Processed)")
             st.dataframe(tf_processed, use_container_width=True)
 
-        # N-grams (processed only)
+        # N-grams
         if do_ngrams:
             all_ngrams = make_ngrams([t.lower() for t in tokens_processed if t.isalnum()], n_val)
             ng_df = freq_table(all_ngrams, k=top_k)
             st.subheader(f"Top {n_val}-grams (Processed)")
             st.dataframe(ng_df, use_container_width=True)
 
-        # POS tagging (processed)
+        # POS tagging
         if do_pos:
             st.subheader("POS Tags (first 200 tokens, Processed)")
             tags = pos_tag(tokens_processed[:200])
@@ -244,19 +239,10 @@ if run:
                 plt.clf()
 
         # Downloads
-        # Processed
-        res_buf_proc = io.StringIO()
-        # tf_processed.to_csv(res_buf_proc, index=False)
-        # st.download_button("Download processed token frequencies (CSV)", data=res_buf_proc.getvalue(),
-        #                    file_name="token_freq_processed.csv", mime="text/csv")
         tok_buf_proc = "\n".join(tokens_processed)
         st.download_button("Download processed tokens (.txt)", data=tok_buf_proc,
                            file_name="tokens_processed.txt", mime="text/plain")
-        # Original
-        res_buf_orig = io.StringIO()
-        # tf_original.to_csv(res_buf_orig, index=False)
-        # st.download_button("Download original token frequencies (CSV)", data=res_buf_orig.getvalue(),
-        #                    file_name="token_freq_original.csv", mime="text/csv")
+
         tok_buf_orig = "\n".join(tokens_original)
         st.download_button("Download original tokens (.txt)", data=tok_buf_orig,
                            file_name="tokens_original.txt", mime="text/plain")
