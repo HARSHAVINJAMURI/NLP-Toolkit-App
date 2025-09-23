@@ -15,7 +15,7 @@ from wordcloud import WordCloud
 # =========================
 nltk_data_dir = "/tmp/nltk_data"
 os.makedirs(nltk_data_dir, exist_ok=True)
-os.environ["NLTK_DATA"] = nltk_data_dir
+nltk.data.path.append(nltk_data_dir)
 
 nltk_resources = [
     "punkt",
@@ -48,6 +48,48 @@ with col1:
 with col2:
     st.markdown("### NLP Tools Step-by-Step")
     st.markdown("• Tokens  • N-grams  • Stemming  • Lemmatization  • POS tagging  • Stopwords removal  • WordCloud  • Frequency analysis")
+
+# =========================
+# Helper functions
+# =========================
+
+def split_paragraphs(s):
+    return [p.strip() for p in s.split("\n\n") if p.strip()]
+
+def normalize(tok_list, lower=True):
+    return [t.lower() for t in tok_list] if lower else tok_list
+
+def remove_stopwords(tokens, lang):
+    if lang == "none": return tokens
+    sw = set(stopwords.words(lang))
+    return [t for t in tokens if t.lower() not in sw]
+
+def apply_stem(tokens, choice):
+    if choice=="Porter": return [PorterStemmer().stem(t) for t in tokens]
+    if choice=="Lancaster": return [LancasterStemmer().stem(t) for t in tokens]
+    if choice=="Snowball": return [SnowballStemmer("english").stem(t) for t in tokens]
+    return tokens
+
+lemmatizer = WordNetLemmatizer()
+
+def get_wordnet_pos(treebank_tag):
+    if treebank_tag.startswith('V'): return wordnet.VERB
+    elif treebank_tag.startswith('N'): return wordnet.NOUN
+    elif treebank_tag.startswith('R'): return wordnet.ADV
+    else: return wordnet.ADJ
+
+def nltk_lemmatize(tokens):
+    tags = pos_tag(tokens)
+    return [lemmatizer.lemmatize(token, get_wordnet_pos(tag)) for token, tag in tags]
+
+def nltk_pos_tag(tokens):
+    return pos_tag(tokens)
+
+def freq_table(tokens, k=20):
+    return pd.DataFrame(Counter(tokens).most_common(k), columns=["token","freq"])
+
+def make_ngrams(tokens, n):
+    return [" ".join(gram) for gram in ngrams(tokens, n)]
 
 # =========================
 # Sidebar input & options
@@ -87,48 +129,6 @@ with st.sidebar:
     run = st.button("Run NLP")
 
 # =========================
-# Helper functions
-# =========================
-def split_paragraphs(s):
-    return [p.strip() for p in s.split("\n\n") if p.strip()]
-
-def normalize(tok_list):
-    return [t.lower() for t in tok_list] if lower else tok_list
-
-def remove_stopwords(tokens, lang):
-    if lang == "none": return tokens
-    sw = set(stopwords.words(lang))
-    return [t for t in tokens if t.lower() not in sw]
-
-def apply_stem(tokens, choice):
-    if choice=="Porter": return [PorterStemmer().stem(t) for t in tokens]
-    if choice=="Lancaster": return [LancasterStemmer().stem(t) for t in tokens]
-    if choice=="Snowball": return [SnowballStemmer("english").stem(t) for t in tokens]
-    return tokens
-
-lemmatizer = WordNetLemmatizer()
-def nltk_lemmatize(tokens):
-    out = []
-    tags = pos_tag(tokens)
-    for token, tag in tags:
-        pos = tag[0].lower()
-        wn_tag = wordnet.NOUN
-        if pos=="v": wn_tag = wordnet.VERB
-        elif pos=="a": wn_tag = wordnet.ADJ
-        elif pos=="r": wn_tag = wordnet.ADV
-        out.append(lemmatizer.lemmatize(token, wn_tag))
-    return out
-
-def nltk_pos_tag(tokens):
-    return pos_tag(tokens)
-
-def freq_table(tokens, k=20):
-    return pd.DataFrame(Counter(tokens).most_common(k), columns=["token","freq"])
-
-def make_ngrams(tokens, n):
-    return [" ".join(gram) for gram in ngrams(tokens, n)]
-
-# =========================
 # Run NLP processing
 # =========================
 if run:
@@ -143,22 +143,9 @@ if run:
         st.metric("Sentences", len(sents))
         st.metric("Word tokens (raw)", len(words_raw))
 
-        # Display paragraphs/sentences
-        col1, col2 = st.columns(2)
-        if show_paragraphs:
-            with col1:
-                st.subheader("Paragraphs")
-                for i, p in enumerate(paragraphs, 1):
-                    st.markdown(f"**P{i}.** {p[:400]}{'...' if len(p)>400 else ''}")
-        if show_sentences:
-            with col2:
-                st.subheader("Sentences (first 50)")
-                for i, s in enumerate(sents[:50], 1):
-                    st.write(f"{i}. {s}")
-
         # Token pipeline
         tokens = words_raw.copy() if do_tokenize else []
-        tokens = normalize(tokens)
+        tokens = normalize(tokens, lower)
         if rm_stop and stop_lang!="none": tokens = remove_stopwords(tokens, stop_lang)
         if stem_choice!="None": tokens = apply_stem(tokens, stem_choice)
         if do_lemm: tokens = nltk_lemmatize(tokens)
@@ -210,3 +197,4 @@ if run:
 
         tok_buf = "\n".join(tokens)
         st.download_button("Download tokens (.txt)", data=tok_buf, file_name="tokens.txt", mime="text/plain")
+
