@@ -10,13 +10,41 @@ from nltk.stem import PorterStemmer, LancasterStemmer, SnowballStemmer, WordNetL
 from nltk import pos_tag
 from wordcloud import WordCloud
 
-# ensure required NLTK data
-nltk_data = ["punkt","averaged_perceptron_tagger","wordnet","omw-1.4","stopwords"]
-for d in nltk_data:
+# # ensure required NLTK data
+# nltk_data = ["punkt","averaged_perceptron_tagger","wordnet","omw-1.4","stopwords"]
+# for d in nltk_data:
+#     try:
+#         nltk.data.find(d if "/" in d else f"tokenizers/{d}" if d=="punkt" else f"corpora/{d}")
+#     except Exception:
+#         nltk.download(d)
+import nltk
+import os
+
+# Use a writable directory for NLTK data (Streamlit Cloud)
+nltk_data_dir = "/tmp/nltk_data"
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)
+
+# List of required NLTK resources
+nltk_resources = [
+    "punkt",
+    "punkt_tab",  # fix for deployment
+    "averaged_perceptron_tagger",
+    "wordnet",
+    "omw-1.4",
+    "stopwords"
+]
+
+# Download missing resources to the writable folder
+for res in nltk_resources:
     try:
-        nltk.data.find(d if "/" in d else f"tokenizers/{d}" if d=="punkt" else f"corpora/{d}")
-    except Exception:
-        nltk.download(d)
+        if res.startswith("punkt"):
+            nltk.data.find(f"tokenizers/{res}")
+        else:
+            nltk.data.find(f"corpora/{res}")
+    except LookupError:
+        nltk.download(res, download_dir=nltk_data_dir)
+
 
 st.set_page_config(page_title="NLP Toolkit", layout="wide")
 st.title("🧰 NLP Toolkit")
@@ -212,3 +240,4 @@ if run:
         # also allow download of tokens as text
         tok_buf = "\n".join(tokens)
         st.download_button("Download tokens (.txt)", data=tok_buf, file_name="tokens.txt", mime="text/plain")
+
