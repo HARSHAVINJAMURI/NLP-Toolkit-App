@@ -12,13 +12,10 @@ from wordcloud import WordCloud
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from textblob import TextBlob
 
-# Ensure required NLTK data
-nltk_data = ["punkt","averaged_perceptron_tagger","wordnet","omw-1.4","stopwords"]
-for d in nltk_data:
-    try:
-        nltk.data.find(d if "/" in d else f"tokenizers/{d}" if d=="punkt" else f"corpora/{d}")
-    except Exception:
-        nltk.download(d)
+# ----------------------------
+# Use local bundled NLTK data
+# ----------------------------
+nltk.data.path.append("./nltk_data")
 
 # Page layout
 st.set_page_config(page_title="NLP Toolkit", layout="wide")
@@ -70,17 +67,22 @@ with st.sidebar:
     gen_wc = st.checkbox("Show wordcloud", value=True)
     run = st.button("Run NLP")
 
+# ----------------------------
 # Helper functions
+# ----------------------------
 def split_paragraphs(s): return [p.strip() for p in s.split("\n\n") if p.strip()]
+
 def remove_stopwords(tokens, lang):
     if lang=="none": return tokens
     sw = set(stopwords.words(lang))
     return [t for t in tokens if t.lower() not in sw]
+
 def apply_stem(tokens, choice):
     if choice=="Porter": return [PorterStemmer().stem(t) for t in tokens]
     if choice=="Lancaster": return [LancasterStemmer().stem(t) for t in tokens]
     if choice=="Snowball": return [SnowballStemmer("english").stem(t) for t in tokens]
     return tokens
+
 lemmatizer = WordNetLemmatizer()
 def nltk_lemmatize(tokens):
     out=[]
@@ -92,10 +94,13 @@ def nltk_lemmatize(tokens):
         elif pos=="r": wn_tag=wordnet.ADV
         out.append(lemmatizer.lemmatize(token, wn_tag))
     return out
+
 def freq_table(tokens, k=20):
     c = Counter(tokens)
     return pd.DataFrame(c.most_common(k), columns=["token","freq"])
+
 def make_ngrams(tokens, n): return [" ".join(gram) for gram in ngrams(tokens, n)]
+
 def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
                    stem_choice="None", do_lemm=False):
     proc_tokens = tokens.copy()
@@ -109,9 +114,9 @@ def process_tokens(tokens, lower=False, rm_stop=False, stop_lang="english",
         proc_tokens = nltk_lemmatize(proc_tokens)
     return proc_tokens
 
-# ------------------------------
+# ----------------------------
 # Run NLP
-# ------------------------------
+# ----------------------------
 if run:
     if not txt.strip():
         st.warning("Please provide some text.")
